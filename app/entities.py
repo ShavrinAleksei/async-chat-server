@@ -3,11 +3,11 @@ import socket
 import typing
 import uuid
 
-from app.enums import TypeTask
+from app.enums import EventType
 
 
 Address = tuple[str, int]
-SocketGenerator = typing.Generator[tuple[TypeTask, socket.socket], None, None]
+SocketGenerator = typing.Generator[tuple[EventType, socket.socket], None, None]
 
 @dataclasses.dataclass(unsafe_hash=True)
 class Client:
