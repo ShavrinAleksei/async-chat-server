@@ -87,12 +87,22 @@ class Server:
                 parsed_command=parsed_command
             )
             yield from self.__send_message_to_client(client, f"Command not supported: {raw_command}.")
+            return
 
         handler = self.__commands[parsed_command]
         self._logger.debug("Handler received for the command", handler=handler.__name__, parsed_command=parsed_command)
 
-        if parsed_command.args and command_args and len(command_args) == len(parsed_command.args):
-            yield from handler(client, *command_args)
+        if parsed_command.args:
+            if command_args and len(command_args) == len(parsed_command.args):
+                yield from handler(client, *command_args)
+            else:
+                self._logger.debug(
+                    "Handler received command with invalid args",
+                    handler=handler.__name__,
+                    parsed_command=parsed_command,
+                    command_args=command_args
+                )
+                yield from self.__send_message_to_client(client, "Invalid command args.")
         else:
             yield from handler(client)
 
