@@ -1,4 +1,5 @@
 import enum
+import selectors
 
 from app.constants import COMMAND_PREFIX
 
@@ -34,6 +35,10 @@ class Commands(str, enum.Enum):
         return f"{COMMAND_PREFIX}{self._value_}{args} - {self._description_}"
 
 
-class TypeTask(int, enum.Enum):
+class EventType(int, enum.Enum):
     READ = enum.auto()
     WRITE = enum.auto()
+
+    @property
+    def selector_type(self) -> int:
+        return selectors.EVENT_READ if self == EventType.READ else selectors.EVENT_WRITE
