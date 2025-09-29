@@ -4,7 +4,9 @@ import socket
 import typing
 from collections import deque
 
+from app.entities import Client
 from app.enums import EventType
+from app.exceptions import ClientDisconnected
 from app.logging import get_logger
 
 
@@ -31,11 +33,11 @@ class Scheduler:
     tasks_waiting_for_read: dict[socket.socket, Task] = dataclasses.field(default_factory=dict)
     tasks_waiting_for_write: dict[socket.socket, Task] = dataclasses.field(default_factory=dict)
 
-    _logger = get_logger("scheduler")
+    __logger = get_logger("scheduler")
 
     def run(self) -> None:
         while any([self.ready_tasks, self.tasks_waiting_for_read, self.tasks_waiting_for_write]):
-            self._logger.debug(
+            self.__logger.debug(
                 "Ready tasks",
                 ready_tasks=self.ready_tasks,
                 tasks_waiting_for_read=self.tasks_waiting_for_read,
@@ -64,7 +66,7 @@ class Scheduler:
         return task
 
     def _register_task(self, task: Task) -> None:
-        self._logger.debug("Register task", task=task)
+        self.__logger.debug("Register task", task=task)
         if task.event.type == EventType.READ:
             self.tasks_waiting_for_read[task.event.socket] = task
         elif task.event.type == EventType.WRITE:
@@ -88,11 +90,16 @@ class Scheduler:
             )
 
     def _resume_task(self, task: Task) -> None:
-        self._logger.debug("Resume task", task=task)
+        self.__logger.debug("Resume task", task=task)
         try:
             event = next(task.handler)
-            self._logger.debug("Receive event from task", task=task, event_handler=event)
+            self.__logger.debug("Receive event from task", task=task, event_handler=event)
             new_task = Task(event=event, handler=task.handler)
             self._register_task(new_task)
         except StopIteration:
-            pass
+            return None
+
+    def delete_tasks_by_client(self, client: Client) -> None:
+        self.tasks_waiting_for_read.pop(client.socket, None)
+        self.tasks_waiting_for_write.pop(client.socket, None)
+        self.__logger.debug(f"Deleted client tasks from queue")
